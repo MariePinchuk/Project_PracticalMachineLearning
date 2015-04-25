@@ -1,0 +1,88 @@
+---
+title: 'Course Project: Writeup'
+author: "Pinchuk Maria"
+date: "Sunday, April 26, 2015"
+output: html_document
+---
+
+The GOAL of this project is to create a machine-learning algorithm that can correctly determine the quality of barbell bicep curls by using data from belt, forearm, arm, and dumbbell monitors. It should be created a report describing how model was built, how cross validation was used, the expected out of sample error should be. 
+
+```{r}
+train <- read.csv("C:/Users/HOME/Documents/pml-training.csv", header=TRUE, na.strings=c("NA","#DIV/0!"))
+test <- read.csv("C:/Users/HOME/Documents/pml-testing.csv", header=TRUE, na.strings=c("NA","#DIV/0!"))
+
+```
+To begin with I will load some necessary packages
+```{r}
+library(caret)
+```
+```{r}
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(gridExtra)
+library(rattle)
+library(e1071)
+```
+
+```{r}
+set.seed(12345)
+```
+
+Getting ridding of columns with NA
+```{r}
+train<-train[,colSums(is.na(train)) == 0]
+test <-test[,colSums(is.na(test)) == 0]
+```
+
+
+#### Dividing the training data into 2 to allow cross-validation
+A little bit decribing: The training data set includes 160  variables and 19622 observations
+The testing data set includes 160 variables and 20 obs.
+To produce cross-validation, the training data set is partionned into 2 sets: subTraining (70%) and subTest (30%).
+This will be performed using random subsampling without replacement.
+
+```{r}
+set.seed(12345)
+InTraining <- createDataPartition(y=train$classe, p=0.70, list=FALSE)
+subset_Training <- train[InTraining, ] 
+subset_Testing <- train[-InTraining, ]
+```
+About variable “classe”: it includes A, B, C, D and E levels. A plot of the outcome variable allows to look at the frequency of every level in the subset_Training data.
+```{r}
+plot(subset_Training$classe, col="yellow", main="distribution of levels of the variable classe in the subset_Training data", xlab="classe levels", ylab="Frequency")
+```
+
+We see that each level does not differ strongly from each other. 
+
+#### Decision tree 
+```{r}
+DesTree <- rpart(classe ~ ., data=subset_Training, method="class")
+predict <- predict(DesTree, subset_Testing, type = "class")
+```
+###### Plotting the decision trees
+```{r}
+rpart.plot(DesTree, main="Classification Tree", extra=102, under=TRUE)
+```
+
+
+###### Results of test on subset_testing data
+```{r}
+confusionMatrix(predict, subset_Testing$classe)
+```
+
+
+#### Another prediction model (Random Forest)
+```{r}
+RandFor <- randomForest(classe ~. , data=subset_Training)
+predict2 <- predict(RandFor, subset_Testing, type = "class")
+```
+
+###### Results of test on subset_testing data
+```{r}
+confusionMatrix(predict2, subset_Testing$classe)
+```
+
+#### Making choice
+ Random Forest algorithm performed a little bit better than Decision Trees.
+I choose random Forest model. 
